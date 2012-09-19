@@ -20,16 +20,23 @@
 case platform
 when "debian"
 
-  if platform_version.to_f == 5.0
+  case
+  when platform_version.to_f <= 5.0
     default[:postgresql][:version] = "8.3"
-  elsif platform_version =~ /squeeze/
+  when platform_version.to_f == 6.0
     default[:postgresql][:version] = "8.4"
+  else
+    default[:postgresql][:version] = "9.1"
   end
 
   set[:postgresql][:dir] = "/etc/postgresql/#{node[:postgresql][:version]}/main"
+  default['postgresql']['client']['packages'] = %w{postgresql-client libpq-dev}
+  default['postgresql']['server']['packages'] = %w{postgresql}
 
 when "ubuntu"
+default[:postgresql][:listen_addresses] = "\'*\'"
 
+default[:postgresql][:autorized_ip] = '0.0.0.0/0'
   case
   when platform_version.to_f <= 9.04
     default[:postgresql][:version] = "8.3"
@@ -40,6 +47,8 @@ when "ubuntu"
   end
 
   set[:postgresql][:dir] = "/etc/postgresql/#{node[:postgresql][:version]}/main"
+  default['postgresql']['client']['packages'] = %w{postgresql-client libpq-dev}
+  default['postgresql']['server']['packages'] = %w{postgresql}
 
 when "fedora"
 
@@ -50,11 +59,28 @@ when "fedora"
   end
 
   set[:postgresql][:dir] = "/var/lib/pgsql/data"
+  default['postgresql']['client']['packages'] = %w{postgresql-devel}
+  default['postgresql']['server']['packages'] = %w{postgresql-server}
 
-when "redhat","centos","scientific","amazon"
+when "amazon"
 
   default[:postgresql][:version] = "8.4"
   set[:postgresql][:dir] = "/var/lib/pgsql/data"
+  default['postgresql']['client']['packages'] = %w{postgresql-devel}
+  default['postgresql']['server']['packages'] = %w{postgresql-server}
+
+when "redhat","centos","scientific"
+
+  default[:postgresql][:version] = "8.4"
+  set[:postgresql][:dir] = "/var/lib/pgsql/data"
+
+  if node['platform_version'].to_f >= 6.0
+    default['postgresql']['client']['packages'] = %w{postgresql-devel}
+    default['postgresql']['server']['packages'] = %w{postgresql-server}
+  else
+    default['postgresql']['client']['packages'] = ["postgresql#{node['postgresql']['version'].split('.').join}-devel"]
+    default['postgresql']['server']['packages'] = ["postgresql#{node['postgresql']['version'].split('.').join}-server"]
+  end
 
 when "suse"
 
@@ -65,8 +91,13 @@ when "suse"
   end
 
   set[:postgresql][:dir] = "/var/lib/pgsql/data"
+  default['postgresql']['client']['packages'] = %w{postgresql-client libpq-dev}
+  default['postgresql']['server']['packages'] = %w{postgresql-server}
 
 else
   default[:postgresql][:version] = "8.4"
   set[:postgresql][:dir]         = "/etc/postgresql/#{node[:postgresql][:version]}/main"
+  default['postgresql']['client']['packages'] = ["postgresql"]
+  default['postgresql']['server']['packages'] = ["postgresql"]
 end
+
